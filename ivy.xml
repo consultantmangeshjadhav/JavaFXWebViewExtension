@@ -1,0 +1,9 @@
+<ivy-module version="1.0">
+	<info organisation="${org.name}" module="${ant.project.name}" revision="${build.version}" />
+	<dependencies>
+        <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.6.4">
+        	<artifact name="slf4j-log4j12" type="jar"/>
+        </dependency>
+        <dependency org="org.apache.pdfbox" name="pdfbox-app" rev="1.8.10" />
+	</dependencies>
+</ivy-module>

@@ -1,0 +1,196 @@
+<project name="javafxwebviewextension" default="distribute-component" basedir=".." xmlns:ivy="antlib:org.apache.ivy.ant">
+
+	<property file="${basedir}/build/build.properties"/>
+	
+	<property name="src.dir" value="${basedir}/src"/>
+	<property name="documents.dir" value="${basedir}/documents"/>
+	<property name="src.java.dir" value="${basedir}/src/java"/>
+	<property name="src.resources.dir" value="${src.dir}/resources"/>
+	<property name="dist.filename" value="${ant.project.name}.jar"/>
+	
+	<property name="lib.dir" value="${basedir}/lib"/>
+	<property name="target.dir" value="${basedir}/target"/>
+	<property name="target.java.dir" value="${target.dir}/java"/>
+	<property name="target.classes.dir" value="${target.java.dir}/classes"/>
+	<property name="target.package.dir" value="${target.dir}/package"/>
+	<property name="dist.dir" value="${basedir}/dist"/>
+	<property name="dist.java.dir" value="${dist.dir}/java"/>
+	
+	<property name="ivy.settings.dir" value="${basedir}/build/ivysettings"/>
+	<ivy:settings file="${ivy.settings.dir}/ivysettings.xml" />
+	<path id="ivy.lib.path">
+		<fileset dir="${basedir}/build">
+			<include name="ivy.jar"/>
+		</fileset>
+	</path>
+		
+	<path id="compile.classpath">
+		<fileset refid="compiletime.libraries"/>
+	</path>
+	
+	<fileset id="compiletime.libraries" dir="${lib.dir}">
+		<include name="*.jar"/>
+	</fileset>
+	
+	<fileset id="runtime.libraries" dir="${lib.dir}">
+		<include name="*.jar"/>
+	</fileset>
+
+	<taskdef resource="org/apache/ivy/ant/antlib.xml"
+	    	          uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+	
+	<!-- ================================= 
+          target: load.libraries              
+         ================================= -->
+    <target name="load.libraries" description="load thirdparty libraries, deletes the current set of libraries if they exists">
+		<delete dir="${lib.dir}"/>
+    	<mkdir dir="${lib.dir}"/>
+    	<ivy:retrieve />
+    </target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: clean                      
+         - - - - - - - - - - - - - - - - - -->
+    <target name="clean">
+		<delete dir="${target.dir}"/>
+    </target>
+	
+    <target name="clean-dist">
+		<delete dir="${dist.dir}"/>
+    </target>
+	
+	<!-- ================================= 
+          target: clean-all              
+         ================================= -->
+    <target name="clean-all" depends="clean, clean-dist" description="description">
+        <delete dir="${lib.dir}"/>
+    </target>
+
+	
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: compile                      
+         - - - - - - - - - - - - - - - - - -->
+    <target name="compile" depends="clean">
+    	<mkdir dir="${target.classes.dir}"/>
+		<javac srcdir="${src.java.dir}" destdir="${target.classes.dir}">
+			<classpath refid="compile.classpath"/>
+    	</javac>
+    </target>
+	
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: package-jar
+          add any configuration files that need to go in the jar
+         - - - - - - - - - - - - - - - - - -->
+    <target name="package-jar">
+		<copy todir="${target.classes.dir}">
+			<fileset dir="${src.resources.dir}"/>
+    	</copy>
+    </target>
+
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: jar
+         - - - - - - - - - - - - - - - - - -->
+    <target name="jar" depends="clean, compile, package-jar">
+        <jar destfile="${target.java.dir}/${dist.filename}" basedir="${target.classes.dir}"/>
+    </target>
+
+	<!-- ================================= 
+          target: distribute
+         ================================= -->
+    <target name="distribute" depends="jar">
+    	<mkdir dir="${dist.java.dir}"/>
+        <copy todir="${dist.java.dir}">
+        	<fileset dir="${target.java.dir}">
+			    <include name="*.jar"/>
+			</fileset>
+    	</copy>
+    </target>
+    
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: generate-doc                      
+         - - - - - - - - - - - - - - - - - -->
+    <target name="generate-doc">
+    	<property name="doc.dir" value="${target.java.dir}/docs"/>
+		<javadoc access="public" author="true" destdir="${doc.dir}" sourcepath="${src.java.dir}">
+		</javadoc>
+    </target>
+    
+	
+	<target name="clean-distribute" depends="clean-dist, distribute"/>
+	
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: package-component
+         - - - - - - - - - - - - - - - - - -->
+    <target name="package-component" depends="load.libraries, clean-distribute, generate-doc">
+    	<property name="target.package.javadocs.dir" value="${target.package.dir}/javadocs"/>
+    	<property name="target.package.documents.dir" value="${target.package.dir}/docs"/>
+		<mkdir dir="${target.package.dir}"/>
+    	<mkdir dir="${target.package.javadocs.dir}"/>
+    	<mkdir dir="${target.package.documents.dir}"/>
+    	<move tofile="${dist.java.dir}/${ant.project.name}-${build.version}.jar" overwrite="true">
+    		<fileset dir="${dist.java.dir}">
+    			<include name="${dist.filename}"/>
+    		</fileset>
+    	</move>
+    	
+    	<copy todir="${target.package.dir}">
+    		<fileset dir="${documents.dir}">
+    			<include name="README.txt"/>
+    		</fileset>
+    		<fileset dir="${dist.java.dir}">
+    			<include name="${ant.project.name}-${build.version}.jar"/>
+    		</fileset>
+    	</copy>
+    	<copy todir="${target.package.documents.dir}">
+    		<fileset dir="${documents.dir}">
+    			<include name="*.txt"/>
+    			<include name="*.htm"/>
+    			<include name="*.html"/>
+    			<exclude name="README.txt"/>
+    		</fileset>
+    	</copy>
+    	<copy todir="${target.package.javadocs.dir}">
+    		<fileset dir="${doc.dir}"/>
+    	</copy>
+    </target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: build-component
+         - - - - - - - - - - - - - - - - - -->
+    <target name="build-component" depends="package-component">
+		<zip destfile="${dist.dir}/${ant.project.name}-${build.version}.zip" basedir="${target.package.dir}">
+		</zip>
+    </target>
+
+	
+	<!-- ================================= 
+          target: distribute-component              
+         ================================= -->
+    <target name="distribute-component" depends="build-component" description="distributes the component"/>
+
+	
+	<!-- ================================= 
+          target: publish              
+         ================================= -->
+    <target name="publish">
+		<copy todir="${dist.dir}">
+			<fileset dir="${basedir}">
+				<include name="ivy.xml"/>
+			</fileset>
+    	</copy>
+    	<delete dir="${user.home}/.ivy2/cache/${org.name}/${ant.project.name}"/>
+    	<ivy:publish resolver="local"
+    					organisation="${org.name}"
+    					module="${ant.project.name}"
+    					revision="${build.version}"
+    					pubrevision="${build.version}"
+    					overwrite="true">
+    		<artifacts pattern="${dist.java.dir}/[artifact]-[revision].[ext]"/>
+    		<artifacts pattern="${dist.dir}/[artifact]-[revision].[ext]"/>
+        	<artifact name="${ant.project.name}" type="zip" ext="zip"></artifact>
+    	</ivy:publish>
+    </target>
+
+
+</project>
